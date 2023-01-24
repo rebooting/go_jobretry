@@ -44,14 +44,22 @@ func TestGetExtension(t *testing.T) {
 			Filename:    "jello.pending",
 			ExpectedErr: InvalidQueueFormatError{},
 		},
+		{
+			Filename:    "jello.xyz.pending",
+			ExpectedErr: InvalidQueueFormatError{},
+		},
+		{
+			Filename:    "jello.001.invalid",
+			ExpectedErr: InvalidQueueFormatError{},
+		},
 	}
 
-	for _, eachCase := range tc {
-		createTestFile(t,eachCase.Filename)
-		defer removeTestFile(t,eachCase.Filename)
-		err := getExtensions(eachCase.Filename)
+	for i, eachCase := range tc {
+		createTestFile(t, eachCase.Filename)
+		defer removeTestFile(t, eachCase.Filename)
+		_, err := getExtensions(eachCase.Filename)
 		if !errors.Is(err, eachCase.ExpectedErr) {
-			t.Errorf("expected %v, got %v", eachCase.ExpectedErr, err)
+			t.Errorf("# %d expected %v, got %v", i, eachCase.ExpectedErr, err)
 		}
 	}
 }
