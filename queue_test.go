@@ -1,8 +1,102 @@
-package go_diskqueue_test
+package go_diskqueue
 
-import("testing")
+import (
+	"errors"
+	"log"
+	"os"
+	"testing"
+)
 
+// setup files for test cases
+func createTestFile(t *testing.T, fileName string) {
+	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	defer f.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 
-func TestQueue(t *testing.T){
-	
+func removeTestFile(t *testing.T, filename string) {
+	t.Logf("removing. .. %s\n", filename)
+	e := os.Remove(filename)
+	if e != nil {
+		t.Logf("trying to remove file in cleanup, error %v", e)
+	}
+}
+
+func TestInsertIntoQueue(t *testing.T) {
+	createTestFile(t, "/tmp/dummy.txt")
+	removeTestFile(t, "/tmp/dummy.txt")
+}
+
+func TestGetExtension(t *testing.T) {
+	type TestCase struct {
+		Filename    string
+		ExpectedErr error
+	}
+
+	tc := []TestCase{
+		{
+			Filename:    "jello.001.pending",
+			ExpectedErr: nil,
+		},
+		{
+			Filename:    "jello.pending",
+			ExpectedErr: InvalidQueueFormatError{},
+		},
+		{
+			Filename:    "jello.xyz.pending",
+			ExpectedErr: InvalidQueueFormatError{},
+		},
+		{
+			Filename:    "jello.001.invalid",
+			ExpectedErr: InvalidQueueFormatError{},
+		},
+				{
+			Filename:    "jello.001.queue",
+			ExpectedErr: nil,
+		},
+		{
+			Filename:    "jello.001.done",
+			ExpectedErr: nil,
+		},
+
+	}
+
+	for i, eachCase := range tc {
+		createTestFile(t, eachCase.Filename)
+		defer removeTestFile(t, eachCase.Filename)
+		_, err := getExtensions(eachCase.Filename)
+		if !errors.Is(err, eachCase.ExpectedErr) {
+			t.Errorf("# %d expected %v, got %v", i, eachCase.ExpectedErr, err)
+		}
+	}
+}
+
+func TestExceedRetries(t *testing.T){
+	type TestCase struct{
+		QItem QueueItem
+		MaxRetries int
+		Expected bool
+	}
+
+	tc:=[]TestCase{
+		{
+			QItem: NewQueueItem("zyx",1,STATE_QUEUE),
+			MaxRetries: 5,
+			Expected: false,
+		},
+		{
+			QItem: NewQueueItem("zyx",5,STATE_QUEUE),
+			MaxRetries: 5,
+			Expected: true,
+		},	
+	}
+
+	for i, eachCase:=range tc{
+		res := ExceedRetries(eachCase.QItem, eachCase.MaxRetries)
+		if res != eachCase.Expected{
+			t.Errorf("#%d expected %v, got %v",i,eachCase.Expected, res)
+		}
+	}
 }
