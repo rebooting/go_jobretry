@@ -56,6 +56,9 @@ func InsertIntoQueue(filename string, queueName string) error {
 	return nil
 }
 
+func ExceedRetries(qi QueueItem, maxRetries int) bool {
+	return qi.RetryCount >= maxRetries
+}
 func getExtensions(filename string) (QueueItem, error) {
 	cleanPath := filepath.Clean(filename)
 	//check if filename is a filename
@@ -67,25 +70,25 @@ func getExtensions(filename string) (QueueItem, error) {
 	}
 
 	if fileInfo.IsDir() {
-		return QueueItem{},NotFileError{}
+		return QueueItem{}, NotFileError{}
 	}
 	fileStr := filepath.Base(cleanPath)
 	fileParts := strings.Split(fileStr, ".")
 	if len(fileParts) < 3 {
-		return QueueItem{},InvalidQueueFormatError{}
+		return QueueItem{}, InvalidQueueFormatError{}
 	}
 	retryInfo, err := strconv.Atoi(fileParts[RETRY_INFO])
 	if err != nil {
 		log.Printf("Queue info of fileParts %v not valid, error: %s", fileParts, err)
-		return QueueItem{},InvalidQueueFormatError{}
-	}
-
-	if fileParts[STATE_INFO]!=STATE_DONE && 
-		fileParts[STATE_INFO]!=STATE_PENDING && 
-		fileParts[STATE_INFO]!=STATE_QUEUE{
-		log.Printf("Invalid state for %s, found %s",filename,fileParts[STATE_INFO])
 		return QueueItem{}, InvalidQueueFormatError{}
 	}
-	return NewQueueItem(fileParts[FILE_INFO], retryInfo,fileParts[STATE_INFO]), nil
+
+	if fileParts[STATE_INFO] != STATE_DONE &&
+		fileParts[STATE_INFO] != STATE_PENDING &&
+		fileParts[STATE_INFO] != STATE_QUEUE {
+		log.Printf("Invalid state for %s, found %s", filename, fileParts[STATE_INFO])
+		return QueueItem{}, InvalidQueueFormatError{}
+	}
+	return NewQueueItem(fileParts[FILE_INFO], retryInfo, fileParts[STATE_INFO]), nil
 
 }

@@ -52,6 +52,15 @@ func TestGetExtension(t *testing.T) {
 			Filename:    "jello.001.invalid",
 			ExpectedErr: InvalidQueueFormatError{},
 		},
+				{
+			Filename:    "jello.001.queue",
+			ExpectedErr: nil,
+		},
+		{
+			Filename:    "jello.001.done",
+			ExpectedErr: nil,
+		},
+
 	}
 
 	for i, eachCase := range tc {
@@ -60,6 +69,34 @@ func TestGetExtension(t *testing.T) {
 		_, err := getExtensions(eachCase.Filename)
 		if !errors.Is(err, eachCase.ExpectedErr) {
 			t.Errorf("# %d expected %v, got %v", i, eachCase.ExpectedErr, err)
+		}
+	}
+}
+
+func TestExceedRetries(t *testing.T){
+	type TestCase struct{
+		QItem QueueItem
+		MaxRetries int
+		Expected bool
+	}
+
+	tc:=[]TestCase{
+		{
+			QItem: NewQueueItem("zyx",1,STATE_QUEUE),
+			MaxRetries: 5,
+			Expected: false,
+		},
+		{
+			QItem: NewQueueItem("zyx",5,STATE_QUEUE),
+			MaxRetries: 5,
+			Expected: true,
+		},	
+	}
+
+	for i, eachCase:=range tc{
+		res := ExceedRetries(eachCase.QItem, eachCase.MaxRetries)
+		if res != eachCase.Expected{
+			t.Errorf("#%d expected %v, got %v",i,eachCase.Expected, res)
 		}
 	}
 }
